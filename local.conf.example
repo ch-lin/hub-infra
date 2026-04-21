@@ -1,0 +1,27 @@
+# ==============================================================================
+# Local Configuration Example
+# Copy this file to 'local.conf' (or 'ds720.conf') and fill in your settings.
+# ==============================================================================
+
+# 1. Project Root Directory (Required)
+# Points to the parent directory containing Authentication-Service, Downloader, and Youtube-Hub
+HOME="/Users/YourName"
+PROJECT="${HOME}/Desktop/Projects/YouTube-Hub"
+
+# 2. Docker Database Mount Paths (Required)
+# These paths correspond to Volume settings in docker-compose.yml
+# Please ensure these folders exist on the Host machine
+DOCKER_DATA="/path/to/docker/data"
+DOCKER_AUTH_DB="${DOCKER_DATA}/Authentication Service Database"
+DOCKER_DOWNLOADER_DB="${DOCKER_DATA}/Downloader Database"
+DOCKER_YOUTUBE_HUB_DB="${DOCKER_DATA}/YouTube Hub Database"
+HOST_AUTH_CERTS_PATH="${DOCKER_DATA}/Authentication Service Certs"
+
+# 3. Sudo Password (Optional, not recommended)
+# If filled, scripts will automatically execute sudo commands (convenient but risky).
+# If left empty, scripts will prompt for password when executing sudo.
+PW=""
+
+# 4. Build Environment Configuration (Required)
+# Corresponds to arguments accepted by Build.sh (e.g., local, dev, prod)
+BUILD_ENV="local.env"

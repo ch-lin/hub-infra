@@ -1,0 +1,7 @@
+# User Information for Initial Setup
+# Copy this file to user-info.conf and update the values.
+
+USER_FIRSTNAME="Admin"
+USER_LASTNAME="User"
+USER_EMAIL="admin@example.com"
+USER_PASSWORD="ChangeMe123!"
