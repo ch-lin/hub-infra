@@ -33,6 +33,7 @@ clone_if_missing "downloader" "https://github.com/ch-lin/downloader.git"
 clone_if_missing "platform" "https://github.com/ch-lin/platform.git"
 clone_if_missing "youtube-hub" "https://github.com/ch-lin/youtube-hub.git"
 clone_if_missing "hub-ui" "https://github.com/ch-lin/hub-ui.git"
+clone_if_missing "backing-services" https://github.com/ch-lin/backing-services.git
 
 echo "---------------------------------------------------"
 echo "🎉 Workspace setup complete."
