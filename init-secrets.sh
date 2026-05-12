@@ -51,6 +51,7 @@ fi
 AUTH_ENV="../authentication-service/.env"
 HUB_ENV="../youtube-hub/.env"
 DOWNLOADER_ENV="../downloader/.env"
+S3_ENV="../backing-services/object-storage/.env"
 API_KEY_CONF="./youtube-api-key.conf"
 USER_INFO_CONF="${SCRIPT_DIR}/user-info.conf"
 
@@ -149,7 +150,7 @@ else
 fi
 
 # Check files
-if [ ! -f "$AUTH_ENV" ] || [ ! -f "$HUB_ENV" ] || [ ! -f "$DOWNLOADER_ENV" ]; then
+if [ ! -f "$AUTH_ENV" ] || [ ! -f "$HUB_ENV" ] || [ ! -f "$DOWNLOADER_ENV" ] || [ ! -f "$S3_ENV" ]; then
     echo -e "${RED}❌ Error: Target .env files not found.${NC}"
     exit 1
 fi
@@ -257,10 +258,34 @@ if [ "$SKIP_EXISTING" = true ]; then
 fi
 
 # ==============================================================================
-# 5. Generate RSA Certificates (Auth Service)
+# 5. Sync S3 Object Storage Credentials
 # ==============================================================================
 echo -e "\n----------------------------------------------------------------"
-echo -e "🔐 5. Check and Generate ${YELLOW}RSA Key Pair${NC} (Auth Service)"
+echo -e "🪣 5. Sync ${YELLOW}S3 Object Storage${NC} Credentials"
+echo "----------------------------------------------------------------"
+
+S3_ROOT_U="admin"
+S3_ROOT_P=$(generate_uuid)
+S3_SVC_AK="youtube-hub-backend"
+S3_SVC_SK=$(generate_uuid)
+
+# Update S3 Root
+update_env "$S3_ENV" "S3_ROOT_USER"     "$S3_ROOT_U"     "Object Storage"
+update_env "$S3_ENV" "S3_ROOT_PASSWORD" "$S3_ROOT_P"     "Object Storage"
+
+# Update S3 Service Account for setup
+update_env "$S3_ENV" "S3_SVC_ACCESS_KEY" "$S3_SVC_AK" "Object Storage"
+update_env "$S3_ENV" "S3_SVC_SECRET_KEY" "$S3_SVC_SK" "Object Storage"
+
+# Update Spring Boot config to use the Service Account
+update_env "$HUB_ENV" "YOUTUBE_HUB_STORAGE_S3_ACCESS_KEY" "$S3_SVC_AK" "Youtube Hub"
+update_env "$HUB_ENV" "YOUTUBE_HUB_STORAGE_S3_SECRET_KEY" "$S3_SVC_SK" "Youtube Hub"
+
+# ==============================================================================
+# 6. Generate RSA Certificates (Auth Service)
+# ==============================================================================
+echo -e "\n----------------------------------------------------------------"
+echo -e "🔐 6. Check and Generate ${YELLOW}RSA Key Pair${NC} (Auth Service)"
 echo "----------------------------------------------------------------"
 
 # 1. Ensure directory exists

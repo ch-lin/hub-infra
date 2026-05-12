@@ -70,6 +70,7 @@ fi
 #   youtube    - Apply actions only to YouTube Hub (and Downloader).
 #   downloader - Apply actions only to Downloader.
 #   ui         - Apply actions only to YouTube Hub UI.
+#   s3         - Apply actions only to S3 Object Storage.
 #   (default)  - If neither is specified, actions apply to BOTH.
 #
 # Actions:
@@ -106,6 +107,7 @@ SCOPE_AUTH=false
 SCOPE_YOUTUBE=false
 SCOPE_DOWNLOADER=false
 SCOPE_UI=false
+SCOPE_S3=false
 ARGS_FOR_SUBSCRIPTS=""
 
 if [ $# -eq 0 ]; then
@@ -123,8 +125,10 @@ for arg in "$@"; do
     SCOPE_DOWNLOADER=true
   elif [[ "${arg}" == "ui" ]]; then
     SCOPE_UI=true
+  elif [[ "${arg}" == "s3" ]]; then
+    SCOPE_S3=true
   elif [[ "${arg}" == "help" ]]; then
-    echo "Usage: $0 {auth|youtube|downloader|ui|backend|db|apps|all|delete-db|help} [more args...]"
+    echo "Usage: $0 {auth|youtube|downloader|ui|s3|backend|db|apps|all|delete-db|help} [more args...]"
     exit 0
   else
     ARGS_FOR_SUBSCRIPTS="${ARGS_FOR_SUBSCRIPTS} ${arg}"
@@ -132,11 +136,12 @@ for arg in "$@"; do
 done
 
 # Default to both if neither specified
-if [[ "${SCOPE_AUTH}" == "false" ]] && [[ "${SCOPE_YOUTUBE}" == "false" ]] && [[ "${SCOPE_DOWNLOADER}" == "false" ]] && [[ "${SCOPE_UI}" == "false" ]]; then
+if [[ "${SCOPE_AUTH}" == "false" ]] && [[ "${SCOPE_YOUTUBE}" == "false" ]] && [[ "${SCOPE_DOWNLOADER}" == "false" ]] && [[ "${SCOPE_UI}" == "false" ]] && [[ "${SCOPE_S3}" == "false" ]]; then
   SCOPE_AUTH=true
   SCOPE_YOUTUBE=true
   SCOPE_DOWNLOADER=true
   SCOPE_UI=true
+  SCOPE_S3=true
 fi
 
 # If delete-db is requested, ensure 'db' target is included to stop containers
@@ -153,6 +158,7 @@ AUTH_ARGS=""
 YOUTUBE_ARGS=""
 DOWNLOADER_ARGS=""
 UI_ARGS=""
+S3_ARGS=""
 
 if [[ -z "${ARGS_FOR_SUBSCRIPTS}" ]]; then
   if [[ "${SCOPE_AUTH}" == "true" ]]; then
@@ -166,6 +172,9 @@ if [[ -z "${ARGS_FOR_SUBSCRIPTS}" ]]; then
   fi
   if [[ "${SCOPE_UI}" == "true" ]]; then
     UI_ARGS="all"
+  fi
+  if [[ "${SCOPE_S3}" == "true" ]]; then
+    S3_ARGS="all"
   fi
 else
   # Prepare arguments for specific services
@@ -183,11 +192,20 @@ else
     if [[ "${arg}" == "ui" ]] || [[ "${arg}" == "all" ]]; then
       UI_ARGS="${UI_ARGS} ${arg}"
     fi
+    if [[ "${arg}" == "all" ]]; then
+      S3_ARGS="${S3_ARGS} ${arg}"
+    fi
   done
   AUTH_ARGS="${AUTH_ARGS## }"
   YOUTUBE_ARGS="${YOUTUBE_ARGS## }"
   DOWNLOADER_ARGS="${DOWNLOADER_ARGS## }"
   UI_ARGS="${UI_ARGS## }"
+  S3_ARGS="${S3_ARGS## }"
+fi
+
+if [[ "${SCOPE_S3}" == "true" ]] && [[ -n "${S3_ARGS}" ]]; then
+  echo "Running clean.sh for S3 Object Storage..."
+  (cd "${PROJECT}/backing-services/object-storage" && run_priv bash clean.sh ${S3_ARGS})
 fi
 
 if [[ "${SCOPE_UI}" == "true" ]] && [[ -n "${UI_ARGS}" ]]; then
