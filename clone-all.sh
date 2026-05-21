@@ -4,23 +4,23 @@
 # Helper script to setup the poly-repo workspace structure.
 # This script clones all microservices into the parent directory.
 
-# Ensure we are in the script's directory
-cd "$(dirname "$0")"
-
-# Go to the workspace root (one level up)
-cd ..
+# 1. Lock the script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_ROOT="$(dirname "${SCRIPT_DIR}")"
 
 echo "📦 Setting up Hub Workspace..."
-echo "📂 Workspace Root: $(pwd)"
+echo "📂 Workspace Root: ${WORKSPACE_ROOT}"
 echo "---------------------------------------------------"
 
 # Helper function
 clone_if_missing() {
     local DIR=$1
     local URL=$2
-    if [ ! -d "$DIR" ]; then
+    local TARGET_PATH="${WORKSPACE_ROOT}/${DIR}"
+    
+    if [ ! -d "$TARGET_PATH" ]; then
         echo "⬇️  Cloning $DIR..."
-        git clone "$URL" "$DIR"
+        git clone "$URL" "$TARGET_PATH"
     else
         echo "✅ $DIR already exists."
     fi

@@ -27,36 +27,28 @@
 # ==============================================================================
 # Lock script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/local.conf"
 
-# Auto-detect DS720 environment
-if hostname | grep -q -i "ds720"; then
-    CONFIG_FILE="${SCRIPT_DIR}/ds720.conf"
-fi
+# Load configuration using the shared helper script
+source "${SCRIPT_DIR}/_load-config.sh" "$@"
 
-# Load settings
-if [ -f "$CONFIG_FILE" ]; then
-    source "$CONFIG_FILE"
-else
-    # If config file not found, use default values (prevents script failure on first clone)
-    echo "⚠️  Config file $CONFIG_FILE not found, using default path settings."
-    # Default: Assume script is in Setup-Scripts, project root is one level up
-    PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-    HOST_AUTH_CERTS_PATH="${PROJECT_ROOT}/authentication-service/certs"
+# Fallback for PROJECT if not set in config file
+# This is now handled by the _load-config.sh script
+if [ -z "${PROJECT:-}" ]; then
+    PROJECT="$(dirname "$SCRIPT_DIR")"
 fi
 
 # ==============================================================================
-# Set file paths (relative to Setup-Scripts folder)
+# Set file paths (Using Absolute Paths based on PROJECT and SCRIPT_DIR)
 # ==============================================================================
-AUTH_ENV="../authentication-service/.env"
-HUB_ENV="../youtube-hub/.env"
-DOWNLOADER_ENV="../downloader/.env"
-S3_ENV="../backing-services/object-storage/.env"
-API_KEY_CONF="./youtube-api-key.conf"
+AUTH_ENV="${PROJECT}/authentication-service/.env"
+HUB_ENV="${PROJECT}/youtube-hub/.env"
+DOWNLOADER_ENV="${PROJECT}/downloader/.env"
+S3_ENV="${PROJECT}/backing-services/object-storage/.env"
+API_KEY_CONF="${SCRIPT_DIR}/youtube-api-key.conf"
 USER_INFO_CONF="${SCRIPT_DIR}/user-info.conf"
 
 # Use path from config, or default if not set
-AUTH_CERTS_DIR="${HOST_AUTH_CERTS_PATH:-../authentication-service/certs}"
+AUTH_CERTS_DIR="${HOST_AUTH_CERTS_PATH:-${PROJECT}/authentication-service/certs}"
 
 # ==============================================================================
 # Argument Parsing (--skip)

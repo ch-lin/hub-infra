@@ -27,10 +27,9 @@ Since this project follows a **Poly-repo** structure (multiple repositories), yo
     ```
 
 3.  **Run the Setup Script**:
-    The `CloneAll.sh` script will automatically clone all other required microservices into the workspace folder.
+    The `clone-all.sh` script will automatically clone all other required microservices into the workspace folder.
     ```bash
-    chmod +x CloneAll.sh
-    ./CloneAll.sh
+    bash clone-all.sh
     ```
 
 ## 📂 Configuration Files
@@ -39,7 +38,7 @@ Before running any script, you must prepare the configuration files. These files
 
 1.  **`local.conf`** (Required)
     *   Defines the root paths for your project and database volumes.
-    *   Copy from template: `cp local.conf.example local.conf`
+    *   **Auto-generated**: If missing, infra scripts will automatically create this from `local.conf.example` and set default paths (`.docker-data`) based on your environment. You can review and adjust it later.
 
 2.  **`user-info.conf`** (Optional but Recommended)
     *   Sets the initial Admin credentials for the Authentication Service.
@@ -51,15 +50,19 @@ Before running any script, you must prepare the configuration files. These files
 
 ## 🛠️ Scripts Overview
 
-### 1. `CloneAll.sh`
+### 0. `_load-config.sh` (The Sentinel)
+*   **Function**: A shared helper script sourced by other scripts. It handles loading configurations, validating the workspace (ensuring all microservices are cloned), and auto-provisioning `local.conf` if it's missing. It also centralizes the `run_priv` (sudo) logic.
+*   **Usage**: Sourced internally. Do not run directly.
+
+### 1. `clone-all.sh`
 **The Workspace Setup.**
 *   **Function**: Automates the cloning of all microservice repositories (`authentication-service`, `downloader`, `youtube-hub`, `hub-ui`, `platform`) into the parent directory.
 *   **Usage**:
     ```bash
-    ./CloneAll.sh
+    bash clone-all.sh
     ```
 
-### 2. `Init-secrets.sh`
+### 2. `init-secrets.sh`
 **The Bootstrapper.**
 *   **Function**:
     *   Generates RSA Key Pairs (Private/Public) for JWT signing.
@@ -67,43 +70,44 @@ Before running any script, you must prepare the configuration files. These files
     *   Injects these secrets directly into the `.env` files of `authentication-service`, `downloader`, and `youtube-hub`.
 *   **Usage**:
     ```bash
-    ./Init-secrets.sh
+    bash init-secrets.sh
     # Use --skip to keep existing secrets and only fill missing ones
-    ./Init-secrets.sh --skip
+    bash init-secrets.sh --skip
     ```
 
-### 3. `BuildAll.sh`
+### 3. `build-all.sh`
 **The Builder.**
-*   **Function**: Orchestrates the build process for all microservices. It ensures `Init-secrets.sh` is run first (in skip mode), then triggers the `Build.sh` script inside each service directory.
+*   **Function**: Orchestrates the build process for all microservices. It ensures `init-secrets.sh` is run first (in skip mode), then triggers the `build.sh` script inside each service directory.
 *   **Usage**:
     ```bash
     # Build everything (Recommended)
-    ./BuildAll.sh
+    bash build-all.sh
 
     # Build specific services
-    ./BuildAll.sh auth
-    ./BuildAll.sh downloader
-    ./BuildAll.sh youtube
-    ./BuildAll.sh ui
+    bash build-all.sh auth
+    bash build-all.sh downloader
+    bash build-all.sh youtube
+    bash build-all.sh ui
+    bash build-all.sh s3
     ```
 
-### 4. `CleanAll.sh`
+### 4. `clean-all.sh`
 **The Cleaner.**
 *   **Function**: Stops containers and removes Docker images to free up space or ensure a fresh build.
 *   **⚠️ Danger Zone**: Can optionally delete database files from the disk.
 *   **Usage**:
     ```bash
     # Clean Docker resources (Containers/Images) for all services
-    ./CleanAll.sh
+    bash clean-all.sh
 
     # Clean specific service
-    ./CleanAll.sh auth
+    bash clean-all.sh auth
 
     # ⚠️ Stop DBs and DELETE ALL DATA on disk
-    ./CleanAll.sh delete-db
+    bash clean-all.sh delete-db
     ```
 
-### 5. `BackupAll.sh`
+### 5. `backup-all.sh`
 **The Lifesaver.**
 *   **Function**:
     1.  Stops all running containers (to ensure data consistency).
@@ -112,27 +116,31 @@ Before running any script, you must prepare the configuration files. These files
 *   **Output**: Backups are saved to the `Backups/` directory (relative to the project root).
 *   **Usage**:
     ```bash
-    ./BackupAll.sh
+    bash backup-all.sh
     ```
 
-## 🚀 Workflow Example
+## 🚀 Typical Execution Order & Workflow Example
 
 1.  **Setup Configs**:
     ```bash
-    cd hub-infra
-    cp local.conf.example local.conf
-    # Edit local.conf to set PROJECT path and DB paths
+    # 1. First, make sure you have all microservices cloned
+    bash clone-all.sh
+    
+    # 2. (Optional) Setup your admin user or YouTube API keys
+    cp user-info.conf.example user-info.conf
+    cp youtube-api-key.conf.example youtube-api-key.conf
     ```
 
 2.  **Initialize & Build**:
     ```bash
-    ./BuildAll.sh
+    # 3. This will auto-create local.conf, run init-secrets.sh, and build all docker containers
+    bash build-all.sh
     ```
 
 3.  **Reset (If things go wrong)**:
     ```bash
-    ./CleanAll.sh
-    ./BuildAll.sh
+    bash clean-all.sh
+    bash build-all.sh
     ```
 
 ## 📜 License
