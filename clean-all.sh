@@ -25,37 +25,15 @@
 # 1. Lock the script directory (ensure relative paths are correct regardless of execution location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-CONFIG_FILE="${SCRIPT_DIR}/local.conf"
+# Load configuration using the shared helper script
+source "${SCRIPT_DIR}/_load-config.sh" "$@"
 
-# Auto-detect ds720 environment
-if hostname | grep -q -i "ds720"; then
-    CONFIG_FILE="${SCRIPT_DIR}/ds720.conf"
-fi
-
-# Check if the first argument is a .conf file
+# Shift arguments if a config file was passed to the helper
 if [[ $# -gt 0 ]] && [[ "$1" == *.conf ]]; then
-    CONFIG_FILE="$1"
     shift
 fi
 
-# ==============================================================================
-# Load Configuration with Validation
-# ==============================================================================
-if [ -f "$CONFIG_FILE" ]; then
-    echo "Loading configuration from ${CONFIG_FILE}..."
-    source "$CONFIG_FILE"
-else
-    echo -e "\033[0;31mError: Configuration file '$CONFIG_FILE' not found.\033[0m"
-    echo "----------------------------------------------------------------"
-    echo "Please create a configuration file based on the example:"
-    echo "  cp local.conf.example local.conf"
-    echo "  vi local.conf  # Edit paths and settings"
-    echo "----------------------------------------------------------------"
-    exit 1
-fi
-
 # Validate critical variables to prevent 'rm -rf /' accidents
-: "${PROJECT:?PROJECT not set in config}"
 : "${DOCKER_AUTH_DB:?DOCKER_AUTH_DB not set in config}"
 : "${DOCKER_DOWNLOADER_DB:?DOCKER_DOWNLOADER_DB not set in config}"
 : "${DOCKER_YOUTUBE_HUB_DB:?DOCKER_YOUTUBE_HUB_DB not set in config}"

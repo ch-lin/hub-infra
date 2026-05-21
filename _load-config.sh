@@ -132,3 +132,23 @@ if [ ! -d "$DOCKER_DATA" ]; then
         exit 1
     }
 fi
+
+# ==============================================================================
+# Validate Workspace (Check if repositories are cloned)
+# ==============================================================================
+REQUIRED_SERVICES=("authentication-service" "downloader" "youtube-hub" "hub-ui" "backing-services")
+MISSING_SERVICES=false
+
+for service in "${REQUIRED_SERVICES[@]}"; do
+    if [ ! -d "${PROJECT}/${service}" ]; then
+        MISSING_SERVICES=true
+        break
+    fi
+done
+
+if [ "$MISSING_SERVICES" = true ]; then
+    echo -e "${RED}❌ Error: One or more microservices are missing in the PROJECT directory.${NC}"
+    echo -e "${YELLOW}👉 It looks like you haven't cloned the workspace repositories yet.${NC}"
+    echo -e "   Please run: ${CYAN}bash ${SCRIPT_DIR}/clone-all.sh${NC} first."
+    exit 1
+fi
