@@ -22,11 +22,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-CONFIG_FILE="local.conf"
+# 1. Lock the script directory (ensure relative paths are correct regardless of execution location)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+CONFIG_FILE="${SCRIPT_DIR}/local.conf"
 
 # Auto-detect ds720 environment
 if hostname | grep -q -i "ds720"; then
-    CONFIG_FILE="ds720.conf"
+    CONFIG_FILE="${SCRIPT_DIR}/ds720.conf"
 fi
 
 # Check if the first argument is a .conf file
