@@ -93,15 +93,6 @@ fi
 # Exit immediately if a command exits with a non-zero status.
 set -euo pipefail
 
-# Helper function to run commands with sudo if PW is set
-run_priv() {
-    if [[ -z "${PW:-}" ]]; then
-        "$@"
-    else
-        echo "${PW}" | sudo -S "$@"
-    fi
-}
-
 DELETE_FILES=false
 SCOPE_AUTH=false
 SCOPE_YOUTUBE=false

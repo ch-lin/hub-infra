@@ -27,22 +27,12 @@
 # ==============================================================================
 # Lock script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/local.conf"
 
-# Auto-detect DS720 environment
-if hostname | grep -q -i "ds720"; then
-    CONFIG_FILE="${SCRIPT_DIR}/ds720.conf"
-fi
-
-# Load settings
-if [ -f "$CONFIG_FILE" ]; then
-    source "$CONFIG_FILE"
-else
-    # If config file not found, use default values (prevents script failure on first clone)
-    echo "⚠️  Config file $CONFIG_FILE not found, using default path settings."
-fi
+# Load configuration using the shared helper script
+source "${SCRIPT_DIR}/_load-config.sh" "$@"
 
 # Fallback for PROJECT if not set in config file
+# This is now handled by the _load-config.sh script
 if [ -z "${PROJECT:-}" ]; then
     PROJECT="$(dirname "$SCRIPT_DIR")"
 fi
