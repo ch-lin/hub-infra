@@ -44,6 +44,7 @@ AUTH_ENV="${PROJECT}/authentication-service/.env"
 HUB_ENV="${PROJECT}/youtube-hub/.env"
 DOWNLOADER_ENV="${PROJECT}/downloader/.env"
 S3_ENV="${PROJECT}/backing-services/object-storage/.env"
+LOGGING_ENV="${PROJECT}/backing-services/central-logging/.env"
 API_KEY_CONF="${SCRIPT_DIR}/youtube-api-key.conf"
 USER_INFO_CONF="${SCRIPT_DIR}/user-info.conf"
 
@@ -142,7 +143,7 @@ else
 fi
 
 # Check files
-if [ ! -f "$AUTH_ENV" ] || [ ! -f "$HUB_ENV" ] || [ ! -f "$DOWNLOADER_ENV" ] || [ ! -f "$S3_ENV" ]; then
+if [ ! -f "$AUTH_ENV" ] || [ ! -f "$HUB_ENV" ] || [ ! -f "$DOWNLOADER_ENV" ] || [ ! -f "$S3_ENV" ] || [ ! -f "$LOGGING_ENV" ]; then
     echo -e "${RED}❌ Error: Target .env files not found.${NC}"
     exit 1
 fi
@@ -274,10 +275,34 @@ update_env "$HUB_ENV" "YOUTUBE_HUB_STORAGE_S3_ACCESS_KEY" "$S3_SVC_AK" "Youtube 
 update_env "$HUB_ENV" "YOUTUBE_HUB_STORAGE_S3_SECRET_KEY" "$S3_SVC_SK" "Youtube Hub"
 
 # ==============================================================================
-# 6. Generate RSA Certificates (Auth Service)
+# 6. Sync Central Logging Credentials
 # ==============================================================================
 echo -e "\n----------------------------------------------------------------"
-echo -e "🔐 6. Check and Generate ${YELLOW}RSA Key Pair${NC} (Auth Service)"
+echo -e "📜 6. Sync ${YELLOW}Central Logging${NC} Credentials"
+echo "----------------------------------------------------------------"
+
+LOGGING_ROOT_P=$(generate_uuid)
+LOGGING_USER="logger"
+LOGGING_P=$(generate_uuid)
+
+# Update Central Logging DB
+update_env "$LOGGING_ENV" "MYSQL_ROOT_PASSWORD" "$LOGGING_ROOT_P" "Central Logging"
+update_env "$LOGGING_ENV" "MYSQL_USER"          "$LOGGING_USER"     "Central Logging"
+update_env "$LOGGING_ENV" "MYSQL_PASSWORD"      "$LOGGING_P"        "Central Logging"
+
+# Update Spring Boot config for microservices
+update_env "$HUB_ENV"        "LOGGING_MYSQL_USER"     "$LOGGING_USER" "Youtube Hub"
+update_env "$HUB_ENV"        "LOGGING_MYSQL_PASSWORD" "$LOGGING_P"    "Youtube Hub"
+update_env "$AUTH_ENV"       "LOGGING_MYSQL_USER"     "$LOGGING_USER" "Auth Service"
+update_env "$AUTH_ENV"       "LOGGING_MYSQL_PASSWORD" "$LOGGING_P"    "Auth Service"
+update_env "$DOWNLOADER_ENV" "LOGGING_MYSQL_USER"     "$LOGGING_USER" "Downloader"
+update_env "$DOWNLOADER_ENV" "LOGGING_MYSQL_PASSWORD" "$LOGGING_P"    "Downloader"
+
+# ==============================================================================
+# 7. Generate RSA Certificates (Auth Service)
+# ==============================================================================
+echo -e "\n----------------------------------------------------------------"
+echo -e "🔐 7. Check and Generate ${YELLOW}RSA Key Pair${NC} (Auth Service)"
 echo "----------------------------------------------------------------"
 
 # 1. Ensure directory exists
