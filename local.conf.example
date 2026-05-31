@@ -15,6 +15,7 @@ DOCKER_DATA="/path/to/docker/data"
 DOCKER_AUTH_DB="${DOCKER_DATA}/Authentication Service Database"
 DOCKER_DOWNLOADER_DB="${DOCKER_DATA}/Downloader Database"
 DOCKER_YOUTUBE_HUB_DB="${DOCKER_DATA}/YouTube Hub Database"
+DOCKER_LOGGING_DB="${DOCKER_DATA}/Logging Data"
 HOST_AUTH_CERTS_PATH="${DOCKER_DATA}/Authentication Service Certs"
 
 # 3. Sudo Password (Optional, not recommended)

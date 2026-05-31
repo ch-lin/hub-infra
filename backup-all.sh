@@ -61,6 +61,10 @@ if [ -d "${PROJECT}/hub-ui" ]; then
   cd "${PROJECT}/hub-ui" && run_priv docker compose stop
 fi
 
+if [ -d "${PROJECT}/backing-services/central-logging" ]; then
+  cd "${PROJECT}/backing-services/central-logging" && run_priv docker compose stop
+fi
+
 echo "Backing up database data..."
 if [ -d "${DOCKER_AUTH_DB}" ]; then
   run_priv tar -czf "${BACKUP_DIR}/auth_db_${DATE}.tar.gz" -C "$(dirname "${DOCKER_AUTH_DB}")" "$(basename "${DOCKER_AUTH_DB}")"
@@ -72,6 +76,10 @@ fi
 
 if [ -d "${DOCKER_YOUTUBE_HUB_DB}" ]; then
   run_priv tar -czf "${BACKUP_DIR}/youtube_hub_db_${DATE}.tar.gz" -C "$(dirname "${DOCKER_YOUTUBE_HUB_DB}")" "$(basename "${DOCKER_YOUTUBE_HUB_DB}")"
+fi
+
+if [ -d "${DOCKER_LOGGING_DB}" ]; then
+  run_priv tar -czf "${BACKUP_DIR}/logging_db_${DATE}.tar.gz" -C "$(dirname "${DOCKER_LOGGING_DB}")" "$(basename "${DOCKER_LOGGING_DB}")"
 fi
 
 # Change ownership of backups to current user if sudo was used
@@ -95,6 +103,10 @@ fi
 
 if [ -d "${PROJECT}/hub-ui" ]; then
   cd "${PROJECT}/hub-ui" && run_priv docker compose start
+fi
+
+if [ -d "${PROJECT}/backing-services/central-logging" ]; then
+  cd "${PROJECT}/backing-services/central-logging" && run_priv docker compose start
 fi
 
 echo "Backup completed. Files are in ${BACKUP_DIR}"

@@ -37,6 +37,7 @@ fi
 : "${DOCKER_AUTH_DB:?DOCKER_AUTH_DB not set in config}"
 : "${DOCKER_DOWNLOADER_DB:?DOCKER_DOWNLOADER_DB not set in config}"
 : "${DOCKER_YOUTUBE_HUB_DB:?DOCKER_YOUTUBE_HUB_DB not set in config}"
+: "${DOCKER_LOGGING_DB:?DOCKER_LOGGING_DB not set in config}"
 
 # ==============================================================================
 # User Guide & Usage Combinations
@@ -49,6 +50,8 @@ fi
 #   downloader - Apply actions only to Downloader.
 #   ui         - Apply actions only to YouTube Hub UI.
 #   s3         - Apply actions only to S3 Object Storage.
+#   logging    - Apply actions only to Central Logging.
+#   backing    - Apply actions to all Backing Services (S3 + Logging).
 #   (default)  - If neither is specified, actions apply to BOTH.
 #
 # Actions:
@@ -77,6 +80,7 @@ SCOPE_YOUTUBE=false
 SCOPE_DOWNLOADER=false
 SCOPE_UI=false
 SCOPE_S3=false
+SCOPE_LOGGING=false
 ARGS_FOR_SUBSCRIPTS=""
 
 if [ $# -eq 0 ]; then
@@ -96,8 +100,13 @@ for arg in "$@"; do
     SCOPE_UI=true
   elif [[ "${arg}" == "s3" ]]; then
     SCOPE_S3=true
+  elif [[ "${arg}" == "logging" ]]; then
+    SCOPE_LOGGING=true
+  elif [[ "${arg}" == "backing" ]]; then
+    SCOPE_S3=true
+    SCOPE_LOGGING=true
   elif [[ "${arg}" == "help" ]]; then
-    echo "Usage: $0 {auth|youtube|downloader|ui|s3|backend|db|apps|all|delete-db|help} [more args...]"
+    echo "Usage: $0 {auth|youtube|downloader|ui|s3|logging|backing|backend|db|apps|all|delete-db|help} [more args...]"
     exit 0
   else
     ARGS_FOR_SUBSCRIPTS="${ARGS_FOR_SUBSCRIPTS} ${arg}"
@@ -105,12 +114,13 @@ for arg in "$@"; do
 done
 
 # Default to both if neither specified
-if [[ "${SCOPE_AUTH}" == "false" ]] && [[ "${SCOPE_YOUTUBE}" == "false" ]] && [[ "${SCOPE_DOWNLOADER}" == "false" ]] && [[ "${SCOPE_UI}" == "false" ]] && [[ "${SCOPE_S3}" == "false" ]]; then
+if [[ "${SCOPE_AUTH}" == "false" ]] && [[ "${SCOPE_YOUTUBE}" == "false" ]] && [[ "${SCOPE_DOWNLOADER}" == "false" ]] && [[ "${SCOPE_UI}" == "false" ]] && [[ "${SCOPE_S3}" == "false" ]] && [[ "${SCOPE_LOGGING}" == "false" ]]; then
   SCOPE_AUTH=true
   SCOPE_YOUTUBE=true
   SCOPE_DOWNLOADER=true
   SCOPE_UI=true
   SCOPE_S3=true
+  SCOPE_LOGGING=true
 fi
 
 # If delete-db is requested, ensure 'db' target is included to stop containers
@@ -128,6 +138,7 @@ YOUTUBE_ARGS=""
 DOWNLOADER_ARGS=""
 UI_ARGS=""
 S3_ARGS=""
+LOGGING_ARGS=""
 
 if [[ -z "${ARGS_FOR_SUBSCRIPTS}" ]]; then
   if [[ "${SCOPE_AUTH}" == "true" ]]; then
@@ -144,6 +155,9 @@ if [[ -z "${ARGS_FOR_SUBSCRIPTS}" ]]; then
   fi
   if [[ "${SCOPE_S3}" == "true" ]]; then
     S3_ARGS="all"
+  fi
+  if [[ "${SCOPE_LOGGING}" == "true" ]]; then
+    LOGGING_ARGS="all"
   fi
 else
   # Prepare arguments for specific services
@@ -164,17 +178,31 @@ else
     if [[ "${arg}" == "all" ]]; then
       S3_ARGS="${S3_ARGS} ${arg}"
     fi
+    if [[ "${arg}" == "all" ]]; then
+      LOGGING_ARGS="${LOGGING_ARGS} ${arg}"
+    fi
   done
   AUTH_ARGS="${AUTH_ARGS## }"
   YOUTUBE_ARGS="${YOUTUBE_ARGS## }"
   DOWNLOADER_ARGS="${DOWNLOADER_ARGS## }"
   UI_ARGS="${UI_ARGS## }"
   S3_ARGS="${S3_ARGS## }"
+  LOGGING_ARGS="${LOGGING_ARGS## }"
 fi
 
-if [[ "${SCOPE_S3}" == "true" ]] && [[ -n "${S3_ARGS}" ]]; then
-  echo "Running clean.sh for S3 Object Storage..."
-  (cd "${PROJECT}/backing-services/object-storage" && run_priv bash clean.sh ${S3_ARGS})
+if [[ "${SCOPE_S3}" == "true" ]] && [[ "${SCOPE_LOGGING}" == "true" ]]; then
+  echo "Running central clean.sh for all Backing Services..."
+  (cd "${PROJECT}/backing-services" && run_priv bash clean.sh all)
+else
+  if [[ "${SCOPE_S3}" == "true" ]] && [[ -n "${S3_ARGS}" ]]; then
+    echo "Running central clean.sh for S3 Object Storage..."
+    (cd "${PROJECT}/backing-services" && run_priv bash clean.sh s3 s3-proxy s3-setup)
+  fi
+
+  if [[ "${SCOPE_LOGGING}" == "true" ]] && [[ -n "${LOGGING_ARGS}" ]]; then
+    echo "Running central clean.sh for Central Logging..."
+    (cd "${PROJECT}/backing-services" && run_priv bash clean.sh logging-db)
+  fi
 fi
 
 if [[ "${SCOPE_UI}" == "true" ]] && [[ -n "${UI_ARGS}" ]]; then
@@ -228,6 +256,15 @@ if [[ "${DELETE_FILES}" == "true" ]]; then
          run_priv bash -c "rm -rf \"$DOCKER_AUTH_DB\"/*"
       else
          echo "Skipping $DOCKER_AUTH_DB (Not found)"
+      fi
+    fi
+
+    if [[ "${SCOPE_LOGGING}" == "true" ]]; then
+      if [ -d "$DOCKER_LOGGING_DB" ]; then
+         echo "Cleaning $DOCKER_LOGGING_DB ..."
+         run_priv bash -c "rm -rf \"$DOCKER_LOGGING_DB\"/*"
+      else
+         echo "Skipping $DOCKER_LOGGING_DB (Not found)"
       fi
     fi
     echo "✅ Database files deleted."
