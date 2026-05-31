@@ -41,6 +41,7 @@ DO_YOUTUBE=false
 DO_DOWNLOADER=false
 DO_UI=false
 DO_S3=false
+DO_LOGGING=false
 
 if [ $# -eq 0 ]; then
   set -- "all"
@@ -53,20 +54,26 @@ for arg in "$@"; do
     downloader) DO_DOWNLOADER=true ;;
     ui) DO_UI=true ;;
     s3) DO_S3=true ;;
+    logging) DO_LOGGING=true ;;
+    backing)
+      DO_S3=true
+      DO_LOGGING=true
+      ;;
     all)
       DO_AUTH=true
       DO_YOUTUBE=true
       DO_DOWNLOADER=true
       DO_UI=true
       DO_S3=true
+      DO_LOGGING=true
       ;;
     help)
-      echo "Usage: $0 {auth|youtube|downloader|ui|s3|all|help}"
+      echo "Usage: $0 {auth|youtube|downloader|ui|s3|logging|backing|all|help}"
       exit 0
       ;;
     *)
       echo "Unknown argument: ${arg}"
-      echo "Usage: $0 {auth|youtube|downloader|ui|s3|all|help}"
+      echo "Usage: $0 {auth|youtube|downloader|ui|s3|logging|backing|all|help}"
       exit 1
       ;;
   esac
@@ -75,9 +82,19 @@ done
 echo "Initializing secrets..."
 bash "${SCRIPT_DIR}/init-secrets.sh" --skip
 
-if [[ "${DO_S3}" == "true" ]]; then
-  echo "Running build.sh for S3 Object Storage with build environment: '${BUILD_ENV}'..."
-  (cd "${PROJECT}/backing-services/object-storage" && run_priv bash build.sh "${BUILD_ENV}")
+if [[ "${DO_S3}" == "true" ]] && [[ "${DO_LOGGING}" == "true" ]]; then
+  echo "Running central build.sh for all Backing Services with build environment: '${BUILD_ENV}'..."
+  (cd "${PROJECT}/backing-services" && run_priv bash build.sh "${BUILD_ENV}")
+else
+  if [[ "${DO_S3}" == "true" ]]; then
+    echo "Running central build.sh for S3 Object Storage with build environment: '${BUILD_ENV}'..."
+    (cd "${PROJECT}/backing-services" && run_priv bash build.sh "${BUILD_ENV}" s3 s3-proxy s3-setup)
+  fi
+
+  if [[ "${DO_LOGGING}" == "true" ]]; then
+    echo "Running central build.sh for Central Logging with build environment: '${BUILD_ENV}'..."
+    (cd "${PROJECT}/backing-services" && run_priv bash build.sh "${BUILD_ENV}" logging-db)
+  fi
 fi
 
 if [[ "${DO_AUTH}" == "true" ]]; then
