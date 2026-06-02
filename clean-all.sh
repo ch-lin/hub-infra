@@ -190,7 +190,7 @@ else
   LOGGING_ARGS="${LOGGING_ARGS## }"
 fi
 
-if [[ "${SCOPE_S3}" == "true" ]] && [[ "${SCOPE_LOGGING}" == "true" ]]; then
+if [[ "${SCOPE_S3}" == "true" ]] && [[ "${SCOPE_LOGGING}" == "true" ]] && [[ -n "${S3_ARGS}" ]] && [[ -n "${LOGGING_ARGS}" ]]; then
   echo "Running central clean.sh for all Backing Services..."
   (cd "${PROJECT}/backing-services" && run_priv bash clean.sh all)
 else
